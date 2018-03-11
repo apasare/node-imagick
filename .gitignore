@@ -1,0 +1,5 @@
+vendor/
+output/
+node_modules/
+build/
+input/
