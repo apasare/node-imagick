@@ -20,6 +20,15 @@ NAN_MODULE_INIT(Image::Init) {
 }
 
 Image::Image() {}
+Image::Image(const std::string &imageSpec) {
+  Magick::Image tmpImage(imageSpec);
+  image = tmpImage;
+}
+Image::Image(const std::string &size, const std::string &color) {
+  Magick::Geometry tmpSize(size);
+  Magick::Image tmpImage(tmpSize, color);
+  image = tmpImage;
+}
 Image::~Image() {}
 
 Nan::Persistent<v8::Function> & Image::constructor() {
@@ -29,7 +38,16 @@ Nan::Persistent<v8::Function> & Image::constructor() {
 
 NAN_METHOD(Image::New) {
   if (info.IsConstructCall()) {
-    Image *obj = new Image();
+    Image *obj;
+
+    if (!info[0]->IsUndefined() && !info[1]->IsUndefined()) {
+      obj = new Image(ToString(info[0]), ToString(info[1]));
+    } else if (!info[0]->IsUndefined()) {
+      obj = new Image(ToString(info[0]));
+    } else {
+      obj = new Image();
+    }
+
     obj->Wrap(info.This());
     info.GetReturnValue().Set(info.This());
   } else {
@@ -38,16 +56,15 @@ NAN_METHOD(Image::New) {
 }
 
 NAN_METHOD(Image::Copy) {
-  Image *image = Nan::ObjectWrap::Unwrap<Image>(info.Holder());
-
   v8::Local<v8::Function> cons = Nan::New(constructor());
   Nan::MaybeLocal<v8::Object> maybeInstance = Nan::NewInstance(cons, 0, NULL);
-  Image *newImage = Nan::ObjectWrap::Unwrap<Image>(
-    maybeInstance.ToLocalChecked()
-  );
+  v8::Local<v8::Object> instance = maybeInstance.ToLocalChecked();
+
+  Image *image = Nan::ObjectWrap::Unwrap<Image>(info.Holder());
+  Image *newImage = Nan::ObjectWrap::Unwrap<Image>(instance);
   newImage->image = image->image;
 
-  info.GetReturnValue().Set(maybeInstance.ToLocalChecked());
+  info.GetReturnValue().Set(instance);
 }
 
 NAN_METHOD(Image::Size) {
@@ -91,96 +108,9 @@ NAN_METHOD(Image::Process) {
 
   Image *image = Nan::ObjectWrap::Unwrap<Image>(info.Holder());
   v8::Local<v8::Object> options = maybeOptions.ToLocalChecked();
-  v8::Local<v8::Object> task = Nan::New<v8::Object>();
-
-  // input
-  if (HasAttr(options, "input")) {
-    v8::Local<v8::Object> input = GetAttrLocal<v8::Object>(options, "input");
-    if (HasAttr(input, "buffer")) {
-      Nan::Set(
-        task,
-        Nan::New("inputBuffer").ToLocalChecked(),
-        GetAttrLocal<v8::Object>(input, "buffer")
-      );
-    } else if (HasAttr(input, "file")) {
-      Nan::Set(
-        task,
-        Nan::New("inputFile").ToLocalChecked(),
-        GetAttrLocal<v8::String>(input, "file")
-      );
-    }
-  }
-
-  // output
-  if (HasAttr(options, "output")) {
-    v8::Local<v8::Object> output = GetAttrLocal<v8::Object>(options, "output");
-    if (HasAttr(output, "buffer")) {
-      Nan::Set(
-        task,
-        Nan::New("outputToBuffer").ToLocalChecked(),
-        GetAttrLocal<v8::Boolean>(output, "buffer")
-      );
-    }
-
-    if (HasAttr(output, "file")) {
-      Nan::Set(
-        task,
-        Nan::New("outputFile").ToLocalChecked(),
-        GetAttrLocal<v8::String>(output, "file")
-      );
-    }
-  }
-
-  if (HasAttr(options, "autorotate")) {
-    Nan::Set(
-      task,
-      Nan::New("autorotate").ToLocalChecked(),
-      GetAttrLocal<v8::Boolean>(options, "autorotate")
-    );
-  }
-
-  if (HasAttr(options, "rotate")) {
-    Nan::Set(
-      task,
-      Nan::New("rotate").ToLocalChecked(),
-      GetAttrLocal<v8::Number>(options, "rotate")
-    );
-  }
-
-  if (HasAttr(options, "strip")) {
-    Nan::Set(
-      task,
-      Nan::New("strip").ToLocalChecked(),
-      GetAttrLocal<v8::Boolean>(options, "strip")
-    );
-  }
-
-  if (HasAttr(options, "crop")) {
-    Nan::Set(
-      task,
-      Nan::New("crop").ToLocalChecked(),
-      GetAttrLocal<v8::String>(options, "crop")
-    );
-  }
-
-  if (HasAttr(options, "resize")) {
-    Nan::Set(
-      task,
-      Nan::New("resize").ToLocalChecked(),
-      GetAttrLocal<v8::String>(options, "resize")
-    );
-  }
-
-  if (HasAttr(options, "extent")) {
-    Nan::Set(
-      task,
-      Nan::New("extent").ToLocalChecked(),
-      GetAttrLocal<v8::String>(options, "extent")
-    );
-  }
 
   Nan::Callback *callback = new Nan::Callback(maybeCallback.ToLocalChecked());
-  Nan::AsyncQueueWorker(new ImageWorker(callback, image, task));
+  Nan::AsyncQueueWorker(new ImageWorker(callback, image, options));
 
   info.GetReturnValue().Set(info.This());
 }

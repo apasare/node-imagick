@@ -1,58 +1,8 @@
+'use strict';
+
 const fs = require('fs');
-const os = require('os');
 const readline = require('readline');
-const imagick = require('bindings')('imagick.node');
-
-
-const Queue = {
-    concurrency: os.cpus().length,
-    queueListner: function(counter) {
-
-    },
-};
-
-class Image {
-    constructor(image) {
-        if (image instanceof Image) {
-            this._image = image.copyImageMagick();
-        } else {
-            this._image = new imagick.Image();
-        }
-    }
-
-    static concurrency(concurrency) {
-       if (typeof(concurrency) === 'number' && concurrency > 0) {
-            Queue.concurrency = concurrency;
-       }
-       return Queue.concurrency;
-    }
-
-    process(options, callback) {
-        if (typeof(callback) !== 'function') {
-            return new Promise((resolve, reject) => {
-                this._image.process(options, (err, data) => {
-                    if (err) return reject(err);
-                    resolve(data);
-                });
-            });
-        } else {
-            return this._image.process(options, callback);
-        }
-    }
-
-    copyImageMagick() {
-        return this._image.copy();
-    }
-
-    size(width, height) {
-        return this._image.size(width, height);
-    }
-}
-
-
-
-
-
+const { Image } = require('./lib');
 
 function dumpMemoryUsage(data) {
     global.gc();
@@ -70,44 +20,57 @@ function readFilePromise(filePath) {
 
 (async () => {
     console.log(`PID ${process.pid}`);
+
+    const imEmpty = new Image('300x300', 'red');
+    await imEmpty.write('output/empty.jpg');
+    return;
+
+
     const buffer = await readFilePromise('input/test.jpg');
     const baseImage = new Image();
-    await baseImage.process({
-        input: {buffer},
-    });
+    await baseImage.read(buffer);
 
-    await (new Image(baseImage)).process({
-        autorotate: true,
-        strip: true,
-        output: {
-            file: `output/test-autorotate.jpg`,
-        },
-    });
-    await (new Image(baseImage)).process({
-        autorotate: true,
-        // resize: "3024",
-        resize: "100x100^",
-        strip: true,
-        output: {
-            file: `output/test-autorotate-resize.jpg`,
-        },
-    });
-    await (new Image(baseImage)).process({
-        autorotate: true,
-        crop: "3024x1701^",
-        strip: true,
-        output: {
-            file: `output/test-autorotate-crop.jpg`,
-        },
-    });
+    const im1 = new Image(baseImage);
+    await im1.rotate();
+    await im1.resize(600, 600, 'areafill');
+    await im1.write('output/test-autorotate-resize.jpg');
 
-    return;
+    // await (new Image(baseImage)).process({
+    //     autorotate: true,
+    //     strip: true,
+    //     output: {
+    //         file: `output/test-autorotate.jpg`,
+    //     },
+    // });
+    // await (new Image(baseImage)).process({
+    //     autorotate: true,
+    //     // resize: "3024",
+    //     resize: "300x300",
+    //     extent: {
+    //         size: "300x300",
+    //         color: "red",
+    //     },
+    //     strip: true,
+    //     output: {
+    //         file: `output/test-autorotate-resize.jpg`,
+    //     },
+    // });
+    // await (new Image(baseImage)).process({
+    //     autorotate: true,
+    //     crop: "3024x1701^",
+    //     strip: true,
+    //     output: {
+    //         file: `output/test-autorotate-crop.jpg`,
+    //     },
+    // });
+
     dumpMemoryUsage();
+    return;
 
     let index = 0;
     promises = []
     do {
-        let output = `output/test-${++index}.jpg`;
+        const output = `output/test-${++index}.jpg`;
         promises.push((new Image(baseImage)).process({
             output: {
                 file: output,
@@ -119,6 +82,7 @@ function readFilePromise(filePath) {
     Promise.all(promises).then((files) => {
         console.log(files);
     }).then(dumpMemoryUsage);
+    return;
 
     const rl = readline.createInterface({
         input: process.stdin,

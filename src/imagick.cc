@@ -1,6 +1,4 @@
 #include <nan.h>
-// @todo delete this?
-#include <Magick++.h>
 
 #include "image.h"
 

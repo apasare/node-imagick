@@ -13,6 +13,8 @@ class Image : public Nan::ObjectWrap {
 
  private:
   explicit Image();
+  explicit Image(const std::string &imageSpec);
+  explicit Image(const std::string &size, const std::string &color);
   ~Image();
 
   static NAN_METHOD(New);

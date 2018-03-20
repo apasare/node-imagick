@@ -21,7 +21,7 @@
         "-Wl,-rpath='$${ORIGIN}/../../vendor/ImageMagick/build/lib'"
       ],
       "cflags_cc": [
-       "-DDEBUG",
+        "-DDEBUG",
         "-fexceptions",
         "-fopenmp -DMAGICKCORE_HDRI_ENABLE=1 -DMAGICKCORE_QUANTUM_DEPTH=16 -fopenmp -DMAGICKCORE_HDRI_ENABLE=1 -DMAGICKCORE_QUANTUM_DEPTH=16 -fopenmp -DMAGICKCORE_HDRI_ENABLE=1 -DMAGICKCORE_QUANTUM_DEPTH=16"
       ]
